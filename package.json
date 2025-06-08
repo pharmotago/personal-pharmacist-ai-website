@@ -1,0 +1,41 @@
+{
+  "name": "personal-pharmacist-ai-website",
+  "version": "1.0.0",
+  "description": "Marketing website for Personal Pharmacist AI - Shopify and GitHub Pages ready",
+  "main": "index.html",
+  "scripts": {
+    "serve": "python -m http.server 8000",
+    "serve-node": "npx serve .",
+    "deploy-gh-pages": "git subtree push --prefix . origin gh-pages",
+    "validate": "npx html-validate index.html"
+  },
+  "keywords": [
+    "personal-pharmacist-ai",
+    "healthcare",
+    "medical",
+    "ai",
+    "medication",
+    "shopify",
+    "github-pages",
+    "marketing-website"
+  ],
+  "author": "Personal Pharmacist AI Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/personal-pharmacist-ai-website.git"
+  },
+  "homepage": "https://yourusername.github.io/personal-pharmacist-ai-website",
+  "bugs": {
+    "url": "https://github.com/yourusername/personal-pharmacist-ai-website/issues"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1",
+    "html-validate": "^8.7.4"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
