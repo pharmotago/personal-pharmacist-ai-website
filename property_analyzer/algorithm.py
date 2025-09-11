@@ -25,8 +25,8 @@ def calculate_value_score(property_data: CommercialProperty) -> float:
     # --- 1. Calculate intermediate metrics ---
     annual_rental_income = property_data.weekly_rental_income * 52
 
-    # Avoid division by zero if price is not set
-    if property_data.price == 0:
+    # Avoid division by zero if price or area is not set
+    if property_data.price == 0 or property_data.area_sqm == 0:
         return 0.0
 
     yield_pa = annual_rental_income / property_data.price
