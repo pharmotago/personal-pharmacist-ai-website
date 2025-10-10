@@ -1,0 +1,69 @@
+name: jules-on-issue
+on:
+  issues:
+    types: [labeled, reopened]
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+jobs:
+  start-jules:
+    if: contains(github.event.issue.labels.*.name, 'jules')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Compose task payload
+        id: compose
+        run: |
+          title="${{ github.event.issue.title }}"
+          body="${{ github.event.issue.body }}"
+          # Keep payload tight; Jules is best with crisp, testable tasks.
+          jq -n --arg s "${{ secrets.JULES_SOURCE_ID }}" \
+                --arg t "$title" \
+                --arg c "$body" \
+                '{source_id:$s, prompt:$t, context:$c}' > session.json
+          echo "payload=$(cat session.json)" >> $GITHUB_OUTPUT
+
+      - name: Create Jules session
+        id: create
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+        run: |
+          set -e
+          curl -sS -X POST https://api.jules.google/v1/sessions \
+            -H "Authorization: Bearer ${JULES_API_KEY}" \
+            -H "Content-Type: application/json" \
+            --data @session.json > create.json
+          cat create.json
+          sid=$(jq -r '.id' create.json)
+          if [ -z "$sid" ] || [ "$sid" = "null" ]; then
+            echo "Failed to create session"; exit 1
+          fi
+          echo "sid=$sid" >> $GITHUB_OUTPUT
+
+      - name: Poll Jules for PR
+        id: poll
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+        run: |
+          sid='${{ steps.create.outputs.sid }}'
+          for i in $(seq 1 60); do
+            curl -sS -X GET "https://api.jules.google/v1/sessions/$sid" \
+              -H "Authorization: Bearer ${JULES_API_KEY}" > status.json
+            pr_url=$(jq -r '.latest_activity.pull_request_url // empty' status.json)
+            echo "Attempt $i: PR=$pr_url"
+            if [ -n "$pr_url" ]; then
+              echo "pr_url=$pr_url" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "Timed out waiting for Jules to open a PR"; exit 1
+
+      - name: Comment with PR link
+        if: steps.poll.outputs.pr_url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "Jules opened a PR: ${{ steps.poll.outputs.pr_url }} ✅"
